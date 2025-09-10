@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 export default StyleSheet.create({
     cardView: {
         flexDirection: 'row',
-        borderColor: '#f1f1f1ff',
         alignItems: 'center',
         borderWidth: 1,
         borderRadius: 12,

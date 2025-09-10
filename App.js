@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ProgressBar from './src/components/ProgressBar/ProgressBar';
 import QuestionTile from './src/components/QuestionTile/QuestionTile';
 import CustomButton from './src/components/CustomButton/CustomButton';
+import NextButton from './src/components/NextButton/NextButton';
 
 export default function App() {
   const totalQuestions = 5;
@@ -30,21 +31,18 @@ export default function App() {
       setButtonAnswerInfoLabel('Correct! ✅');
     } else {
       // Show incorrect answer info, with tell witch answer is correct
-      setButtonAnswerInfoLabel('Incorrect! ❌' + '\n\n' + 'The correct answer was A. Riyadh');
+      setButtonAnswerInfoLabel('Incorrect! ❌');
     }
 
     // Move to next question after 1.5 seconds
     setTimeout(() => {
       // Reset states
       setUserAnswerIndex(null);
+      setUserSumbitAnswer(false);
       setButtonAnswerInfoLabel(null);
 
       // Move to next question
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-
-      // Reset submit answer state,
-      // to allow the user to select an answer for the next question
-      setUserSumbitAnswer(false);
     }, 1500);
   }
 
@@ -61,7 +59,13 @@ export default function App() {
                   <Text style={styles.resultLabel}>Your Score:</Text>
                   <Text style={styles.resultScore}>{score} / {totalQuestions}</Text>
                 </ View>
-                <CustomButton onPress={fetchQuestions} enabled={true} label={'Take Quiz Again'} />
+                <CustomButton
+                  onPress={fetchQuestions}
+                  enabled={true}
+                  backgroundColor={'#000000ff'}
+                  forgroundColor={'#ffffffff'}
+                  fontWeight={'bold'}
+                  label={'Take Quiz Again'} />
               </>
             )
             :
@@ -72,29 +76,52 @@ export default function App() {
                   <Text style={styles.subtitleText}>Qustion {currentQuestionIndex + 1} of {totalQuestions}</Text>
                 </View>
 
-                <ProgressBar progress={(((currentQuestionIndex + 1) / totalQuestions))} />
+                <ProgressBar progress={(((currentQuestionIndex + 1) / totalQuestions) * 100)} />
 
                 <Text style={styles.subtitleText}>Score: {score} correct</Text>
                 <Text style={styles.questionText}>What is the capital of Saudi Arabia?</Text>
 
-                <View style={styles.answersView} pointerEvents={userSumbitAnswer ? "none" : null}>
-                  <QuestionTile onPress={() => setUserAnswerIndex(0)} isSelected={userAnswerIndex === 0} label={'A.'} text={'Riyadh'} />
-                  <QuestionTile onPress={() => setUserAnswerIndex(1)} isSelected={userAnswerIndex === 1} label={'B.'} text={'Jeddah'} />
-                  <QuestionTile onPress={() => setUserAnswerIndex(2)} isSelected={userAnswerIndex === 2} label={'C.'} text={'Dammam'} />
-                  <QuestionTile onPress={() => setUserAnswerIndex(3)} isSelected={userAnswerIndex === 3} label={'D.'} text={'Mecca'} />
+                {
+                  /*
+                    - Render a list of answer choices dynamically using map
+                    - Each answer is shown as a QuestionTile with:
+                        • A label (numbered 1, 2, 3, ...)
+                        • A text
+                    - When a user taps an answer, update the selected index
+                    - Highlight the selected answer
+                    - After submitting:
+                        • Mark the correct answer
+                        • Mark the selected wrong answer (if any)
+                  */
+                }
+                <View style={styles.answersView}>
+                  {["Riyadh", "Jeddah", "Dammam", "Mecca"].map((text, index) => (
+                    <QuestionTile
+                      key={index}
+                      onPress={() => setUserAnswerIndex(index)}
+                      isSelected={userAnswerIndex === index}
+                      label={`${index + 1}.`}
+                      text={text}
+                      userSumbitAnswer={userSumbitAnswer}
+                      isCorrect={index === correctAnswerIndex}
+                      isIncorrect={index === userAnswerIndex && userAnswerIndex !== correctAnswerIndex}
+                    />
+                  ))}
                 </View>
 
-
                 {
-                  /* 
-                  - Answer the question and show the answer info button
-                  - Disable the button if the user didn't select an answer or already submitted it
-                  - If the user submits an answer, show the answer info label,
-                    and move to the next question after a specific duration
+                  /*
+                    - Renders the main quiz action button
+                    - Handles button behavior:
+                        • Only submits if an answer is selected and not already submitted
+                        • Disabled otherwise
+                    - Label is dynamic based on state:
+                        • Submitted → show answer info
+                        • Last question → "Finish Quiz"
+                        • Otherwise → "Answer Question"
                   */
-
                 }
-                <CustomButton
+                <NextButton
                   // Handle button press: only submit answer if an answer is selected and not already submitted
                   onPress={() => {
                     if (!userSumbitAnswer && userAnswerIndex != null) {
@@ -103,19 +130,23 @@ export default function App() {
                   }}
                   // Enable the button only if the user has selected an answer and hasn't submitted yet
                   enabled={userAnswerIndex != null && !userSumbitAnswer}
-                  // Update the label: show answer info if submitted, otherwise prompt to answer the question
-                  label={userSumbitAnswer ? buttonAnswerInfoLabel : 'Answer Question'}
+                  // Reflect whether the current answer has been submitted
+                  answerSubmited={userSumbitAnswer}
+                  // Update the label: show answer info if submitted, otherwise prompt to answer the question or finish quiz if user in last question
+                  label={
+                    userSumbitAnswer ?
+                      buttonAnswerInfoLabel :
+                      (currentQuestionIndex + 1 === totalQuestions) ?
+                        'Finish Quiz' :
+                        'Answer Question'
+                  }
                 />
-
-
               </>
-
             )}
         </View>
       </SafeAreaView >
     </View >
   );
-
 }
 
 const styles = StyleSheet.create({

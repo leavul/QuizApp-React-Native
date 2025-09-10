@@ -8,9 +8,7 @@ export default StyleSheet.create({
         justifyContent: 'center',
     },
     buttonText: {
-        color: '#ffffffff',
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 13,
         textAlign: 'center'
     },
 });

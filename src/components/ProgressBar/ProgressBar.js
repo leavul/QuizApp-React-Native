@@ -4,7 +4,7 @@ import styles from './ProgressBarStyles';
 export default function ProgressBar({ progress }) {
     return (
         <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
         </View>
     );
 }
