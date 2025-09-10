@@ -6,35 +6,89 @@ import QuestionTile from './src/components/QuestionTile/QuestionTile';
 import CustomButton from './src/components/CustomButton/CustomButton';
 
 export default function App() {
+  const totalQuestions = 5;
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const correctAnswerIndex = 0;
+
   const [userAnswer, setUserAnswer] = useState(null);
+  const [doesUserSumbitAnswer, setDoesUserSumbitAnswer] = useState(false);;
+  const [score, setScore] = useState(0);
+
+  const [buttonAnswerInfoLabel, setButtonAnswerInfoLabel] = useState(null);
+
+  function fetchQuestions() {
+
+  }
+
+  function userSubmitAnswer() {
+    setDoesUserSumbitAnswer(true);
+
+    // Check if user answer is right
+    if (userAnswer === correctAnswerIndex) {
+      setScore(score + 1);
+      setButtonAnswerInfoLabel('Correct! ✅');
+    } else {
+      setButtonAnswerInfoLabel('Incorrect! ❌' + '\n\n' + 'The correct answer was A. Riyadh');
+    }
+
+    setTimeout(() => {
+      setButtonAnswerInfoLabel(null)
+      setUserAnswer(null);
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setDoesUserSumbitAnswer(false);
+    }, 1500);
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
       <SafeAreaView>
         <View style={styles.cardView}>
-          <View style={styles.infoView}>
-            <Text style={styles.appTitleText}>Quiz App</Text>
-            <Text style={styles.subtitleText}>Qustion 1 of 5</Text>
-          </View>
+          {currentQuestionIndex + 1 > totalQuestions ?
+            (
+              <>
+                <View style={styles.resultContainer}>
+                  <Text style={styles.resultTitle}>Quiz Completed!</Text>
+                  <Text style={styles.resultLabel}>Your Score:</Text>
+                  <Text style={styles.resultScore}>{score} / {totalQuestions}</Text>
+                </ View>
+                <CustomButton onPress={fetchQuestions} enabled={true} label={'Take Quiz Again'} />
+              </>
+            )
+            :
+            (
+              <>
+                <View style={styles.infoView}>
+                  <Text style={styles.appTitleText}>Quiz App</Text>
+                  <Text style={styles.subtitleText}>Qustion {currentQuestionIndex + 1} of {totalQuestions}</Text>
+                </View>
 
-          <ProgressBar progress={0.20} />
+                <ProgressBar progress={(((currentQuestionIndex + 1) / totalQuestions))} />
 
-          <Text style={styles.subtitleText}>Score: 0 correct</Text>
-          <Text style={styles.questionText}>What is the capital of Saudi Arabia?</Text>
+                <Text style={styles.subtitleText}>Score: {score} correct</Text>
+                <Text style={styles.questionText}>What is the capital of Saudi Arabia?</Text>
 
-          <View style={styles.answersView}>
-            <QuestionTile onPress={() => setUserAnswer(0)} isSelected={userAnswer === 0} label={'A.'} text={'Riyadh'} />
-            <QuestionTile onPress={() => setUserAnswer(1)} isSelected={userAnswer === 1} label={'B.'} text={'Jeddah'} />
-            <QuestionTile onPress={() => setUserAnswer(2)} isSelected={userAnswer === 2} label={'C.'} text={'Dammam'} />
-            <QuestionTile onPress={() => setUserAnswer(3)} isSelected={userAnswer === 3} label={'D.'} text={'Mecca'} />
-          </View>
+                <View style={styles.answersView} pointerEvents={doesUserSumbitAnswer ? "none" : null}>
+                  <QuestionTile onPress={() => setUserAnswer(0)} isSelected={userAnswer === 0} label={'A.'} text={'Riyadh'} />
+                  <QuestionTile onPress={() => setUserAnswer(1)} isSelected={userAnswer === 1} label={'B.'} text={'Jeddah'} />
+                  <QuestionTile onPress={() => setUserAnswer(2)} isSelected={userAnswer === 2} label={'C.'} text={'Dammam'} />
+                  <QuestionTile onPress={() => setUserAnswer(3)} isSelected={userAnswer === 3} label={'D.'} text={'Mecca'} />
+                </View>
 
-          <CustomButton onPress={() => { console.log('button press') }} isOn={userAnswer != null} label={'Answer Question'} />
+                {
+                  doesUserSumbitAnswer ?
+                    <CustomButton label={buttonAnswerInfoLabel} /> :
+                    <CustomButton onPress={() => userSubmitAnswer(userAnswer)} enabled={userAnswer != null} label={'Answer Question'} />
+                }
+
+              </>
+
+            )}
         </View>
-      </SafeAreaView>
-    </View>
+      </SafeAreaView >
+    </View >
   );
+
 }
 
 const styles = StyleSheet.create({
@@ -43,6 +97,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     justifyContent: 'center',
     padding: 20,
+  },
+  resultContainer: {
+    alignItems: 'center',
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  resultLabel: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  resultScore: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
   },
   cardView: {
     width: '100%',

@@ -11,5 +11,6 @@ export default StyleSheet.create({
         color: '#ffffffff',
         fontSize: 14,
         fontWeight: 'bold',
+        textAlign: 'center'
     },
 });
