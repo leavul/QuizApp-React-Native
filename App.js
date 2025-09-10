@@ -10,8 +10,8 @@ export default function App() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const correctAnswerIndex = 0;
 
-  const [userAnswer, setUserAnswer] = useState(null);
-  const [doesUserSumbitAnswer, setDoesUserSumbitAnswer] = useState(false);;
+  const [userAnswerIndex, setUserAnswerIndex] = useState(null);
+  const [userSumbitAnswer, setUserSumbitAnswer] = useState(false);;
   const [score, setScore] = useState(0);
 
   const [buttonAnswerInfoLabel, setButtonAnswerInfoLabel] = useState(null);
@@ -20,22 +20,31 @@ export default function App() {
 
   }
 
-  function userSubmitAnswer() {
-    setDoesUserSumbitAnswer(true);
+  function userAnswerQuestion() {
+    setUserSumbitAnswer(true);
 
     // Check if user answer is right
-    if (userAnswer === correctAnswerIndex) {
+    if (userAnswerIndex === correctAnswerIndex) {
       setScore(score + 1);
+      // Show correct answer info
       setButtonAnswerInfoLabel('Correct! ✅');
     } else {
+      // Show incorrect answer info, with tell witch answer is correct
       setButtonAnswerInfoLabel('Incorrect! ❌' + '\n\n' + 'The correct answer was A. Riyadh');
     }
 
+    // Move to next question after 1.5 seconds
     setTimeout(() => {
-      setButtonAnswerInfoLabel(null)
-      setUserAnswer(null);
+      // Reset states
+      setUserAnswerIndex(null);
+      setButtonAnswerInfoLabel(null);
+
+      // Move to next question
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setDoesUserSumbitAnswer(false);
+
+      // Reset submit answer state,
+      // to allow the user to select an answer for the next question
+      setUserSumbitAnswer(false);
     }, 1500);
   }
 
@@ -68,18 +77,36 @@ export default function App() {
                 <Text style={styles.subtitleText}>Score: {score} correct</Text>
                 <Text style={styles.questionText}>What is the capital of Saudi Arabia?</Text>
 
-                <View style={styles.answersView} pointerEvents={doesUserSumbitAnswer ? "none" : null}>
-                  <QuestionTile onPress={() => setUserAnswer(0)} isSelected={userAnswer === 0} label={'A.'} text={'Riyadh'} />
-                  <QuestionTile onPress={() => setUserAnswer(1)} isSelected={userAnswer === 1} label={'B.'} text={'Jeddah'} />
-                  <QuestionTile onPress={() => setUserAnswer(2)} isSelected={userAnswer === 2} label={'C.'} text={'Dammam'} />
-                  <QuestionTile onPress={() => setUserAnswer(3)} isSelected={userAnswer === 3} label={'D.'} text={'Mecca'} />
+                <View style={styles.answersView} pointerEvents={userSumbitAnswer ? "none" : null}>
+                  <QuestionTile onPress={() => setUserAnswerIndex(0)} isSelected={userAnswerIndex === 0} label={'A.'} text={'Riyadh'} />
+                  <QuestionTile onPress={() => setUserAnswerIndex(1)} isSelected={userAnswerIndex === 1} label={'B.'} text={'Jeddah'} />
+                  <QuestionTile onPress={() => setUserAnswerIndex(2)} isSelected={userAnswerIndex === 2} label={'C.'} text={'Dammam'} />
+                  <QuestionTile onPress={() => setUserAnswerIndex(3)} isSelected={userAnswerIndex === 3} label={'D.'} text={'Mecca'} />
                 </View>
 
+
                 {
-                  doesUserSumbitAnswer ?
-                    <CustomButton label={buttonAnswerInfoLabel} /> :
-                    <CustomButton onPress={() => userSubmitAnswer(userAnswer)} enabled={userAnswer != null} label={'Answer Question'} />
+                  /* 
+                  - Answer the question and show the answer info button
+                  - Disable the button if the user didn't select an answer or already submitted it
+                  - If the user submits an answer, show the answer info label,
+                    and move to the next question after a specific duration
+                  */
+
                 }
+                <CustomButton
+                  // Handle button press: only submit answer if an answer is selected and not already submitted
+                  onPress={() => {
+                    if (!userSumbitAnswer && userAnswerIndex != null) {
+                      userAnswerQuestion();
+                    }
+                  }}
+                  // Enable the button only if the user has selected an answer and hasn't submitted yet
+                  enabled={userAnswerIndex != null && !userSumbitAnswer}
+                  // Update the label: show answer info if submitted, otherwise prompt to answer the question
+                  label={userSumbitAnswer ? buttonAnswerInfoLabel : 'Answer Question'}
+                />
+
 
               </>
 
