@@ -1,55 +1,90 @@
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
-import { useState } from 'react';
-import ProgressBar from './src/components/ProgressBar/ProgressBar';
+import { useState, useEffect } from 'react';
+import LoadingView from './src/components/LoadingView/LoadingView';
+import ErrorView from './src/components/ErrorView/ErrorView';
+import ResultView from './src/components/ResultView/ResultView';
+import QuizHeader from './src/components/QuizHeader/QuizHeader';
 import QuestionTile from './src/components/QuestionTile/QuestionTile';
-import CustomButton from './src/components/CustomButton/CustomButton';
-import SubmitAnswerButton from './src/components/SubmitAnswerButton/SubmitAnswerButton';
+import AnswerSection from './src/components/AnswerSection/AnswerSection';
+import getQuestions from './src/api/QuestionsApi';
 
 export default function App() {
-  const totalQuestions = 5;
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const correctAnswerIndex = 0;
+  const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState('');
 
-  const [userAnswerIndex, setUserAnswerIndex] = useState(null);
-  const [userSumbitAnswer, setUserSumbitAnswer] = useState(false);;
+  const [questions, setQuestions] = useState([]);
+  const [numberOfQuestions, setNumberOfQuestions] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [finishQuestions, setFinishQuestions] = useState(null);
+
+  const [currentAnswerIndex, setCurrentAnswerIndex] = useState(null);
+  const [answerSubmitted, setAnswerSubmitted] = useState(false);
+  const [answerIsCorrect, setAnswerIsCorrect] = useState(null);
   const [score, setScore] = useState(0);
 
-  const [answerInfo, setButtonAnswerInfoLabel] = useState(null);
+  // Fetch questions when app loads
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
 
-  const [finishQuestions, setFinishQuestions] = useState(false);
+  // Funtion to fetch questions from API
+  async function fetchQuestions() {
+    setLoading(true);
+    setErrorText('');
 
-  function fetchQuestions() {
+    setQuestions([]);
     setCurrentQuestionIndex(0);
-    setUserAnswerIndex(null);
-    setUserSumbitAnswer(false);
-    setScore(0);
-    setButtonAnswerInfoLabel(null);
     setFinishQuestions(false);
+
+    setCurrentAnswerIndex(null);
+    setAnswerSubmitted(false);
+    setAnswerIsCorrect(null);
+    setScore(0);
+
+    try {
+      // Fetch questions from API
+      const fetchedQuestions = await getQuestions();
+
+      // If no questions are fetched, throw error
+      if (!fetchedQuestions.length) {
+        throw new Error('No questions found. Please try again latter')
+      }
+      setQuestions(fetchedQuestions);
+      setNumberOfQuestions(fetchedQuestions.length);
+    } catch (error) {
+      setErrorText(error.message ?? "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function userAnswerQuestion() {
-    setUserSumbitAnswer(true);
+  // Function to validate user answer
+  function validateAnswer(correctAnswerIndex) {
+    setAnswerSubmitted(true);
 
     // Check if user answer is right
-    if (userAnswerIndex === correctAnswerIndex) {
+    if (currentAnswerIndex === correctAnswerIndex) {
       setScore(score + 1);
-      // Show correct answer info
-      setButtonAnswerInfoLabel('Correct! ✅');
+      // Set answer is correct
+      setAnswerIsCorrect(true);
     } else {
-      // Show incorrect answer info, with tell witch answer is correct
-      setButtonAnswerInfoLabel('Incorrect! ❌');
+      // Set answer is incorrect
+      setAnswerIsCorrect(false);
     }
 
   }
 
-  function moveToNextQustion() {
+  // Function to move to next question or finish quiz
+  function nextQustionOrFinishQuiz(isLastQuestion) {
     // Reset states
-    setUserAnswerIndex(null);
-    setUserSumbitAnswer(false);
-    setButtonAnswerInfoLabel(null);
+    setCurrentAnswerIndex(null);
+    setAnswerSubmitted(false);
+    setAnswerIsCorrect(null);
 
-    if (currentQuestionIndex + 1 === totalQuestions) {
+    // If it is the last question, finish quiz
+    if (isLastQuestion) {
       setFinishQuestions(true);
       return;
     }
@@ -58,131 +93,114 @@ export default function App() {
     setCurrentQuestionIndex(currentQuestionIndex + 1);
   }
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      <SafeAreaView>
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="auto" />
+        <LoadingView />
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  else if (errorText) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.cardView}>
+          <ErrorView onTryAgain={fetchQuestions} text={errorText} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Finish all questions state
+  else if (finishQuestions) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.cardView}>
+          <ResultView
+            score={score}
+            numberOfQuestions={numberOfQuestions}
+            onRestartQuiz={fetchQuestions}
+          />
+        </View>
+      </SafeAreaView>
+    );
+
+  }
+  // Default state
+  // Show question and it's choices
+  else {
+    // Check if it is the last question
+    const isLastQuestion = (currentQuestionIndex + 1) === numberOfQuestions;
+
+    // Get current question
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionText = currentQuestion['question'];
+    const correctAnswerIndex = currentQuestion['correctAnswerIndex'];
+    const questionChoices = currentQuestion['choices'];
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="auto" />
         <View style={styles.cardView}>
           {
-            finishQuestions
-              ? (
-                <>
-                  <View style={styles.resultContainer}>
-                    <Text style={styles.resultTitle}>Quiz Completed!</Text>
-                    <Text style={styles.resultLabel}>Your Score:</Text>
-                    <Text style={styles.resultScore}>{score} / {totalQuestions}</Text>
-                  </ View>
-                  <CustomButton
-                    onPress={fetchQuestions}
-                    enabled={true}
-                    backgroundColor={'#000000ff'}
-                    forgroundColor={'#ffffffff'}
-                    label={'Take Quiz Again'} />
-                </>
-              )
-              : (
-                <>
-                  <View style={styles.infoView}>
-                    <Text style={styles.appTitleText}>Quiz App</Text>
-                    <Text style={styles.subtitleText}>Qustion {currentQuestionIndex + 1} of {totalQuestions}</Text>
-                  </View>
+            /*
+            Show: 
+            - quiz app title
+            - question number
+            - progress bar
+            - score
+            */
+          }
+          <QuizHeader
+            numberOfQuestions={numberOfQuestions}
+            currentQuestionIndex={currentQuestionIndex}
+            score={score}
+          />
 
-                  <ProgressBar progress={(((currentQuestionIndex + 1) / totalQuestions) * 100)} />
+          {
+            /* 
+            Show:
+            - the question text
+            */
+          }
+          <QuestionTile text={questionText} />
 
-                  <Text style={styles.subtitleText}>Score: {score} correct</Text>
-                  <Text style={styles.questionText}>What is the capital of Saudi Arabia?</Text>
-
-                  {
-                    /*
-                      - Render a list of answer choices dynamically using map
-                      - Each answer is shown as a QuestionTile with:
-                          • A label (numbered 1, 2, 3, ...)
-                          • A text
-                      - When a user taps an answer, update the selected index
-                      - Highlight the selected answer
-                      - After submitting:
-                          • Mark the correct answer
-                          • Mark the selected wrong answer (if any)
-                    */
-                  }
-                  <View style={styles.answersView}>
-                    {["Riyadh", "Jeddah", "Dammam", "Mecca"].map((text, index) => (
-                      <QuestionTile
-                        key={index}
-                        onPress={() => setUserAnswerIndex(index)}
-                        isSelected={userAnswerIndex === index}
-                        label={`${index + 1}.`}
-                        text={text}
-                        userSumbitAnswer={userSumbitAnswer}
-                        isCorrect={index === correctAnswerIndex}
-                        isIncorrect={index === userAnswerIndex && userAnswerIndex !== correctAnswerIndex}
-                      />
-                    ))}
-                  </View>
-                  {
-                    userSumbitAnswer
-                      ?
-                      <View style={styles.answerInfoView}>
-                        <Text style={styles.answerInfoText}>{answerInfo}</Text>
-                        {
-                          /*
-                          - The next question button
-                          - Label is dynamic based on state:
-                            • Last question → "Finish Quiz"
-                            • Otherwise → show "Next Question"
-                          */
-                        }
-                        <CustomButton onPress={moveToNextQustion}
-                          label={
-                            (currentQuestionIndex + 1 === totalQuestions)
-                              ? 'Finish Quiz'
-                              : 'Next Question'
-                          } />
-                      </View>
-                      :
-
-                      /*
-                        - The main quiz button
-                            • Only submits if an answer is selected and not already submitted
-                            • Disabled otherwise
-                      */
-                      <SubmitAnswerButton
-                        onPress={userAnswerQuestion}
-                        // Enable the button only if the user has selected an answer and hasn't submitted yet
-                        enabled={userAnswerIndex != null && !userSumbitAnswer}
-                      />
-                  }
-                </>
-              )}
+          {
+            /* 
+            Show:
+            - question choices
+            - answer info if user submitted an answer otherwise submit answer button 
+            */
+          }
+          <AnswerSection
+            setCurrentAnswerIndex={setCurrentAnswerIndex}
+            onSubmitAnswer={() => validateAnswer(correctAnswerIndex)}
+            onNextQustionOrFinishQuiz={() => nextQustionOrFinishQuiz(isLastQuestion)}
+            questionChoices={questionChoices}
+            currentAnswerIndex={currentAnswerIndex}
+            answerSubmitted={answerSubmitted}
+            correctAnswerIndex={correctAnswerIndex}
+            answerIsCorrect={answerIsCorrect}
+            isLastQuestion={isLastQuestion}
+          />
         </View>
-      </SafeAreaView >
-    </View >
-  );
+      </SafeAreaView>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
     backgroundColor: '#fff',
     justifyContent: 'center',
     padding: 20,
-  },
-  resultContainer: {
-    alignItems: 'center',
-  },
-  resultTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  resultLabel: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  resultScore: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 20,
   },
   cardView: {
     width: '100%',
@@ -193,36 +211,4 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 30,
   },
-  infoView: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  appTitleText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  subtitleText: {
-    color: '#565656ff',
-    fontSize: 13,
-  },
-  questionText: {
-    fontSize: 16,
-    marginTop: 25,
-    marginBottom: 25,
-  },
-  answersView: {
-    gap: 12,
-    marginBottom: 25,
-  },
-  answerInfoView: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  answerInfoText: {
-    fontSize: 14,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  }
 });
